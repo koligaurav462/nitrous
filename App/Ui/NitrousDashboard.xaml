@@ -1,7 +1,7 @@
 <Window x:Class="Nitrous.Ui.NitrousDashboard"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Nitrous Dashboard" Height="670" Width="360"
+        Title="Nitrous Dashboard" Height="760" Width="360"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True"
         IsVisibleChanged="Window_IsVisibleChanged"
@@ -60,7 +60,7 @@
         </Style>
 
         <!-- Modern Slider -->
-<Style x:Key="ModernSliderStyle" TargetType="Slider">
+        <Style x:Key="ModernSliderStyle" TargetType="Slider">
             <Setter Property="Foreground" Value="#B388FF"/>
             <Setter Property="SmallChange" Value="1"/> <!-- Enables precise Arrow Key movement -->
             <Setter Property="LargeChange" Value="10"/>
@@ -216,7 +216,7 @@
                         <RadioButton x:Name="BtnFanCustom" GroupName="Fans" Uid="Medium" Tag="M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z" Content="Custom" Style="{StaticResource ActionButtonStyle}" Grid.Column="2" Margin="4,0,0,0" Click="FanBtn_Click"/>
                     </Grid>
 
-                    <StackPanel x:Name="CustomFanSection" Margin="0,5,0,0">
+                    <StackPanel x:Name="CustomFanSection" Margin="0,0,0,10">
                         <Grid Margin="0,0,0,8">
                             <TextBlock Text="CUSTOM FAN SPEED" Foreground="#888890" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             <CheckBox x:Name="TogUnifiedFans" Content="UNIFIED" Style="{StaticResource SquareCheckBoxStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="TogUnifiedFans_Click"/>
@@ -246,6 +246,48 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
+                    
+                    <!-- GPU Overclocking Section -->
+                    <GroupBox Header="GPU Overclocking" Margin="0,5,0,5" Foreground="#888890" FontWeight="Bold" FontSize="10" BorderBrush="#333333">
+                        <StackPanel Margin="5">
+                            
+                            <Grid Margin="0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="55"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Text="Core Offset:" FontWeight="Normal" FontSize="11" VerticalAlignment="Center" Foreground="White"/>
+                                <Slider x:Name="CoreClockSlider" Grid.Column="1" Style="{StaticResource ModernSliderStyle}"
+                                        Minimum="-250" Maximum="250" Value="0" 
+                                        TickFrequency="5" IsSnapToTickEnabled="True" 
+                                        ValueChanged="GpuSlider_ValueChanged" 
+                                        VerticalAlignment="Center" Margin="5,0"/>
+                                <TextBlock x:Name="CoreClockLabel" Grid.Column="2" FontWeight="Bold" FontSize="11"
+                                           Text="+0 MHz" TextAlignment="Right" VerticalAlignment="Center" Foreground="#B388FF"/>
+                            </Grid>
+
+                            <Grid Margin="0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="55"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Text="VRAM Offset:" FontWeight="Normal" FontSize="11" VerticalAlignment="Center" Foreground="White"/>
+                                <Slider x:Name="MemoryClockSlider" Grid.Column="1" Style="{StaticResource ModernSliderStyle}"
+                                        Minimum="-1000" Maximum="1000" Value="0" 
+                                        TickFrequency="10" IsSnapToTickEnabled="True" 
+                                        ValueChanged="GpuSlider_ValueChanged" 
+                                        VerticalAlignment="Center" Margin="5,0"/>
+                                <TextBlock x:Name="MemoryClockLabel" Grid.Column="2" FontWeight="Bold" FontSize="11"
+                                           Text="+0 MHz" TextAlignment="Right" VerticalAlignment="Center" Foreground="#B388FF"/>
+                            </Grid>
+                            
+                        </StackPanel>
+                    </GroupBox>
+
                 </StackPanel>
 
                 <!-- 2. SETTINGS PAGE -->

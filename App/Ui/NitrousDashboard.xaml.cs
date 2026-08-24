@@ -10,6 +10,9 @@ namespace Nitrous.Ui;
 public partial class NitrousDashboard : Window
 {
     private bool _isSyncingFans = false;
+    
+    private readonly NvidiaGpuManager _gpuManager;
+    private bool _isGpuInitialized = false;
 
     public NitrousDashboard()
     {
@@ -18,6 +21,19 @@ public partial class NitrousDashboard : Window
         SystemModelText.Text = $"Nitrous on {SystemOSManager.GetSystemModel()}";
         DashVersionText.Text = $"Nitrous {UpdateManager.CurrentVersion}";
         SettingsVersionText.Text = $"Nitrous {UpdateManager.CurrentVersion}";
+
+        _gpuManager = new NvidiaGpuManager();
+
+        if (_gpuManager.GetClocks(out int currentCore, out int currentMemory))
+        {
+            CoreClockSlider.Value = currentCore;
+            MemoryClockSlider.Value = currentMemory;
+            
+            CoreClockLabel.Text = (currentCore > 0 ? "+" : "") + $"{currentCore} MHz";
+            MemoryClockLabel.Text = (currentMemory > 0 ? "+" : "") + $"{currentMemory} MHz";
+        }
+
+        _isGpuInitialized = true;
     }
 
     private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
@@ -54,7 +70,6 @@ public partial class NitrousDashboard : Window
         var powerColor = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(isOnline ? "#FF453A" : "#34C759"));
         string powerText = isOnline ? "AC POWER" : "BATTERY";
 
-        // Geometry strings instead of Text Icons!
         var acGeom = Geometry.Parse("M7,2V13H10V22L17,10H13L17,2H7Z");
         var battGeom = Geometry.Parse("M16.67,4H15V2H9V4H7.33A1.33,1.33 0 0,0 6,5.33V20.67C6,21.4 6.6,22 7.33,22H16.67A1.33,1.33 0 0,0 18,20.67V5.33C18,4.6 17.4,4 16.67,4Z");
 
@@ -256,5 +271,22 @@ public partial class NitrousDashboard : Window
         base.OnClosed(e);
         SettingsManager.Save("WindowTop", (int)this.Top);
         SettingsManager.Save("WindowLeft", (int)this.Left);
+    }
+
+    private void GpuSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+
+        if (!_isGpuInitialized || CoreClockSlider == null || MemoryClockSlider == null) return;
+
+        int core = (int)CoreClockSlider.Value;
+        int memory = (int)MemoryClockSlider.Value;
+
+        if (CoreClockLabel != null)
+            CoreClockLabel.Text = (core > 0 ? "+" : "") + $"{core} MHz";
+
+        if (MemoryClockLabel != null)
+            MemoryClockLabel.Text = (memory > 0 ? "+" : "") + $"{memory} MHz";
+
+        _gpuManager.SetClocks(core, memory);
     }
 }

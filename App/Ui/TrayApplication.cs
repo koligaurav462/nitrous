@@ -14,6 +14,7 @@ public class TrayApplication : ApplicationContext
 {
     private readonly NotifyIcon trayIcon;
     private readonly NitroKeyHook _nitroHook;
+    private readonly NvidiaGpuManager _gpuManager;
 
     public TrayApplication()
     {
@@ -32,6 +33,9 @@ public class TrayApplication : ApplicationContext
         _nitroHook.NitroKeyPressed += (s, e) => ShowDashboard();
 
         _ = Task.Run(ApplyPowerSettings);
+
+        _gpuManager = new NvidiaGpuManager();
+        _ = _gpuManager.RestoreAtBootAsync();
     }
 
     private void BuildContextMenu()
@@ -50,7 +54,6 @@ public class TrayApplication : ApplicationContext
 
     private void ShowDashboard()
     {
-        // Prevent opening multiple UI windows at the same time
         string processName = Process.GetCurrentProcess().ProcessName;
         if (Process.GetProcessesByName(processName).Length > 1) return;
 
