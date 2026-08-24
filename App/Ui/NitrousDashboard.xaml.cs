@@ -13,6 +13,7 @@ public partial class NitrousDashboard : Window
 {
     private bool _isSyncingFans = false;
     
+    // Removed 'readonly' so it can be assigned inside the async initialization
     private NvidiaGpuManager _gpuManager;
     private bool _isGpuInitialized = false;
 
@@ -24,15 +25,20 @@ public partial class NitrousDashboard : Window
         DashVersionText.Text = $"Nitrous {UpdateManager.CurrentVersion}";
         SettingsVersionText.Text = $"Nitrous {UpdateManager.CurrentVersion}";
 
+        // Fire and forget initialization to prevent UI thread blocking
         InitializeGpuAsync();
     }
 
+    /// <summary>
+    /// Asynchronously initializes NVAPI and reads the current clocks without blocking the UI.
+    /// </summary>
     private async void InitializeGpuAsync()
     {
         _isGpuInitialized = false;
 
         try
         {
+            // 1. Offload heavy NVIDIA initialization and hardware querying to a background thread
             var initData = await Task.Run(() =>
             {
                 var manager = new NvidiaGpuManager();
@@ -41,12 +47,14 @@ public partial class NitrousDashboard : Window
                 return new { Manager = manager, Success = success, Core = core, Memory = memory };
             });
 
+            // 2. Marshal back to the WPF UI Thread to update visual controls safely
             await Dispatcher.InvokeAsync(() =>
             {
                 _gpuManager = initData.Manager;
 
                 if (initData.Success)
                 {
+                    // Assign UI values (ValueChanged events will fire, but will be ignored due to _isGpuInitialized)
                     CoreClockSlider.Value = initData.Core;
                     MemoryClockSlider.Value = initData.Memory;
 
@@ -54,13 +62,16 @@ public partial class NitrousDashboard : Window
                     MemoryClockLabel.Text = (initData.Memory > 0 ? "+" : "") + $"{initData.Memory} MHz";
                 }
 
+                // Safe to enable user interactions
                 _isGpuInitialized = true;
             });
         }
         catch (Exception ex)
         {
+            // Log failure for diagnostics without crashing the application
             Debug.WriteLine($"[Nitrous] GPU Initialization Failed: {ex.Message}");
 
+            // Keep UI responsive but cleanly disable the GPU controls
             await Dispatcher.InvokeAsync(() =>
             {
                 if (CoreClockSlider != null) CoreClockSlider.IsEnabled = false;
@@ -69,12 +80,12 @@ public partial class NitrousDashboard : Window
                 if (CoreClockLabel != null) 
                 {
                     CoreClockLabel.Text = "ERR";
-                    CoreClockLabel.Foreground = Brushes.Red;
+                    CoreClockLabel.Foreground = System.Windows.Media.Brushes.Red;
                 }
                 if (MemoryClockLabel != null)
                 {
                     MemoryClockLabel.Text = "ERR";
-                    MemoryClockLabel.Foreground = Brushes.Red;
+                    MemoryClockLabel.Foreground = System.Windows.Media.Brushes.Red;
                 }
                 
                 _isGpuInitialized = false; 
@@ -332,6 +343,7 @@ public partial class NitrousDashboard : Window
         if (MemoryClockLabel != null)
             MemoryClockLabel.Text = (memory > 0 ? "+" : "") + $"{memory} MHz";
 
+        // Safely access _gpuManager assuming it has completed initialization
         _gpuManager?.SetClocks(core, memory);
     }
 }
