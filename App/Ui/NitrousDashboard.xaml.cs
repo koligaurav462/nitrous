@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -11,7 +13,7 @@ public partial class NitrousDashboard : Window
 {
     private bool _isSyncingFans = false;
     
-    private readonly NvidiaGpuManager _gpuManager;
+    private NvidiaGpuManager _gpuManager;
     private bool _isGpuInitialized = false;
 
     public NitrousDashboard()
@@ -22,18 +24,62 @@ public partial class NitrousDashboard : Window
         DashVersionText.Text = $"Nitrous {UpdateManager.CurrentVersion}";
         SettingsVersionText.Text = $"Nitrous {UpdateManager.CurrentVersion}";
 
-        _gpuManager = new NvidiaGpuManager();
+        InitializeGpuAsync();
+    }
 
-        if (_gpuManager.GetClocks(out int currentCore, out int currentMemory))
+    private async void InitializeGpuAsync()
+    {
+        _isGpuInitialized = false;
+
+        try
         {
-            CoreClockSlider.Value = currentCore;
-            MemoryClockSlider.Value = currentMemory;
-            
-            CoreClockLabel.Text = (currentCore > 0 ? "+" : "") + $"{currentCore} MHz";
-            MemoryClockLabel.Text = (currentMemory > 0 ? "+" : "") + $"{currentMemory} MHz";
-        }
+            var initData = await Task.Run(() =>
+            {
+                var manager = new NvidiaGpuManager();
+                bool success = manager.GetClocks(out int core, out int memory);
+                
+                return new { Manager = manager, Success = success, Core = core, Memory = memory };
+            });
 
-        _isGpuInitialized = true;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                _gpuManager = initData.Manager;
+
+                if (initData.Success)
+                {
+                    CoreClockSlider.Value = initData.Core;
+                    MemoryClockSlider.Value = initData.Memory;
+
+                    CoreClockLabel.Text = (initData.Core > 0 ? "+" : "") + $"{initData.Core} MHz";
+                    MemoryClockLabel.Text = (initData.Memory > 0 ? "+" : "") + $"{initData.Memory} MHz";
+                }
+
+                _isGpuInitialized = true;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Nitrous] GPU Initialization Failed: {ex.Message}");
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (CoreClockSlider != null) CoreClockSlider.IsEnabled = false;
+                if (MemoryClockSlider != null) MemoryClockSlider.IsEnabled = false;
+                
+                if (CoreClockLabel != null) 
+                {
+                    CoreClockLabel.Text = "ERR";
+                    CoreClockLabel.Foreground = Brushes.Red;
+                }
+                if (MemoryClockLabel != null)
+                {
+                    MemoryClockLabel.Text = "ERR";
+                    MemoryClockLabel.Foreground = Brushes.Red;
+                }
+                
+                _isGpuInitialized = false; 
+            });
+        }
     }
 
     private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
@@ -275,7 +321,6 @@ public partial class NitrousDashboard : Window
 
     private void GpuSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-
         if (!_isGpuInitialized || CoreClockSlider == null || MemoryClockSlider == null) return;
 
         int core = (int)CoreClockSlider.Value;
@@ -287,6 +332,6 @@ public partial class NitrousDashboard : Window
         if (MemoryClockLabel != null)
             MemoryClockLabel.Text = (memory > 0 ? "+" : "") + $"{memory} MHz";
 
-        _gpuManager.SetClocks(core, memory);
+        _gpuManager?.SetClocks(core, memory);
     }
 }
